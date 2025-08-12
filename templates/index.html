@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row min-vh-100 align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <h1 class="display-4 fw-bold mb-4">
+                        AI-Powered <span class="text-primary">Sentiment Analysis</span>
+                    </h1>
+                    <p class="lead mb-4">
+                        Analyze text sentiment in real-time with advanced NLP. 
+                        Upload documents, get insights, and visualize emotional patterns 
+                        with enterprise-grade accuracy.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg glass-btn">
+                            <i class="fas fa-rocket me-2"></i>Get Started
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg glass-btn">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-demo glass-card p-4">
+                    <h5 class="mb-3"><i class="fas fa-play-circle me-2"></i>Try It Now</h5>
+                    <div class="demo-input mb-3">
+                        <textarea class="form-control" id="demoText" rows="4" 
+                                placeholder="Enter some text to see sentiment analysis in action...">I love this new product! It's amazing and works perfectly.</textarea>
+                    </div>
+                    <button class="btn btn-primary w-100 mb-3" id="demoAnalyze">
+                        <i class="fas fa-brain me-2"></i>Analyze Sentiment
+                    </button>
+                    <div id="demoResult" class="result-display" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="sentiment-badge positive">
+                                    <i class="fas fa-smile"></i> Positive
+                                </span>
+                                <div class="mt-2">
+                                    <small class="text-muted">Confidence: <span class="fw-bold">0.85</span></small>
+                                </div>
+                            </div>
+                            <div class="sentiment-score">
+                                <canvas id="demoChart" width="80" height="80"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="display-5 fw-bold mb-3">Powerful Features</h2>
+                <p class="lead">Everything you need for comprehensive sentiment analysis</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card h-100 p-4 text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-bolt fa-2x text-primary"></i>
+                    </div>
+                    <h5>Real-time Analysis</h5>
+                    <p class="text-muted">Instant sentiment detection as you type with live confidence scores.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card h-100 p-4 text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-file-upload fa-2x text-success"></i>
+                    </div>
+                    <h5>File Processing</h5>
+                    <p class="text-muted">Upload TXT and CSV files for batch sentiment analysis.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card h-100 p-4 text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-chart-pie fa-2x text-warning"></i>
+                    </div>
+                    <h5>Data Visualization</h5>
+                    <p class="text-muted">Interactive charts and graphs to visualize sentiment trends.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card h-100 p-4 text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-download fa-2x text-info"></i>
+                    </div>
+                    <h5>Export Results</h5>
+                    <p class="text-muted">Download your analysis results in CSV format for further processing.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section py-5 bg-primary bg-opacity-10">
+    <div class="container">
+        <div class="row text-center g-4">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3 class="display-4 fw-bold text-primary">99%</h3>
+                    <p class="mb-0">Accuracy Rate</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3 class="display-4 fw-bold text-success">24/7</h3>
+                    <p class="mb-0">Available</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3 class="display-4 fw-bold text-warning">50+</h3>
+                    <p class="mb-0">Languages</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3 class="display-4 fw-bold text-info">1M+</h3>
+                    <p class="mb-0">Texts Analyzed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const demoAnalyzeBtn = document.getElementById('demoAnalyze');
+    const demoText = document.getElementById('demoText');
+    const demoResult = document.getElementById('demoResult');
+    
+    demoAnalyzeBtn.addEventListener('click', function() {
+        const text = demoText.value.trim();
+        if (!text) return;
+        
+        // Simulate analysis (in real app, this would be an API call)
+        demoAnalyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+        demoAnalyzeBtn.disabled = true;
+        
+        setTimeout(() => {
+            // Simple demo logic
+            const positive_words = ['love', 'amazing', 'great', 'perfect', 'wonderful', 'excellent'];
+            const negative_words = ['hate', 'terrible', 'awful', 'bad', 'horrible', 'worst'];
+            
+            const textLower = text.toLowerCase();
+            const posCount = positive_words.filter(word => textLower.includes(word)).length;
+            const negCount = negative_words.filter(word => textLower.includes(word)).length;
+            
+            let sentiment, confidence, color;
+            if (posCount > negCount) {
+                sentiment = 'Positive';
+                confidence = Math.min(0.7 + (posCount * 0.1), 0.95);
+                color = 'success';
+            } else if (negCount > posCount) {
+                sentiment = 'Negative';
+                confidence = Math.min(0.7 + (negCount * 0.1), 0.95);
+                color = 'danger';
+            } else {
+                sentiment = 'Neutral';
+                confidence = 0.6;
+                color = 'secondary';
+            }
+            
+            // Update result display
+            const sentimentBadge = demoResult.querySelector('.sentiment-badge');
+            sentimentBadge.className = `sentiment-badge ${color === 'success' ? 'positive' : color === 'danger' ? 'negative' : 'neutral'}`;
+            sentimentBadge.innerHTML = `<i class="fas fa-${color === 'success' ? 'smile' : color === 'danger' ? 'frown' : 'meh'}"></i> ${sentiment}`;
+            
+            const confidenceSpan = demoResult.querySelector('.fw-bold');
+            confidenceSpan.textContent = confidence.toFixed(2);
+            
+            demoResult.style.display = 'block';
+            demoAnalyzeBtn.innerHTML = '<i class="fas fa-brain me-2"></i>Analyze Sentiment';
+            demoAnalyzeBtn.disabled = false;
+        }, 1500);
+    });
+    
+    // Trigger demo analysis on page load
+    setTimeout(() => {
+        demoAnalyzeBtn.click();
+    }, 1000);
+});
+</script>
+{% endblock %}

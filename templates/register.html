@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Sentiment Analysis Tool{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center min-vh-100 align-items-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="auth-card glass-card p-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                    <h2 class="h4 fw-bold">Create Account</h2>
+                    <p class="text-muted">Join us for advanced sentiment analysis</p>
+                </div>
+
+                <form method="POST" id="registerForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-input-addon">
+                                <i class="fas fa-user"></i>
+                            </span>
+                            <input type="text" class="form-control glass-input" id="username" name="username" required>
+                        </div>
+                        <div class="form-text">3-20 characters, letters and numbers only</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-input-addon">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                            <input type="email" class="form-control glass-input" id="email" name="email" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-input-addon">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                            <input type="password" class="form-control glass-input" id="password" name="password" required>
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Minimum 6 characters</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-input-addon">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                            <input type="password" class="form-control glass-input" id="confirmPassword" required>
+                        </div>
+                    </div>
+
+                    <!-- Password Strength Indicator -->
+                    <div class="mb-3">
+                        <div class="password-strength">
+                            <div class="strength-meter">
+                                <div class="strength-meter-fill" id="strengthMeter"></div>
+                            </div>
+                            <small id="strengthText" class="text-muted">Password strength: Weak</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            I agree to the <a href="#" class="text-primary">Terms of Service</a> and 
+                            <a href="#" class="text-primary">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 glass-btn mb-3">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+                </form>
+
+                <div class="text-center">
+                    <p class="mb-0">Already have an account? 
+                        <a href="{{ url_for('login') }}" class="text-primary fw-bold">Sign in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const registerForm = document.getElementById('registerForm');
+    const username = document.getElementById('username');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirmPassword');
+    const togglePassword = document.getElementById('togglePassword');
+    const strengthMeter = document.getElementById('strengthMeter');
+    const strengthText = document.getElementById('strengthText');
+    
+    // Password visibility toggle
+    togglePassword.addEventListener('click', function() {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        
+        const icon = this.querySelector('i');
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    });
+    
+    // Password strength checker
+    password.addEventListener('input', function() {
+        const strength = calculatePasswordStrength(this.value);
+        updatePasswordStrength(strength);
+    });
+    
+    // Form validation
+    registerForm.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+    
+    function calculatePasswordStrength(password) {
+        let score = 0;
+        
+        if (password.length >= 6) score += 1;
+        if (password.length >= 10) score += 1;
+        if (/[a-z]/.test(password)) score += 1;
+        if (/[A-Z]/.test(password)) score += 1;
+        if (/[0-9]/.test(password)) score += 1;
+        if (/[^A-Za-z0-9]/.test(password)) score += 1;
+        
+        return Math.min(score, 4);
+    }
+    
+    function updatePasswordStrength(strength) {
+        const colors = ['#dc3545', '#fd7e14', '#ffc107', '#28a745'];
+        const texts = ['Very Weak', 'Weak', 'Fair', 'Strong'];
+        const widths = [25, 50, 75, 100];
+        
+        if (strength > 0) {
+            strengthMeter.style.width = widths[strength - 1] + '%';
+            strengthMeter.style.backgroundColor = colors[strength - 1];
+            strengthText.textContent = 'Password strength: ' + texts[strength - 1];
+            strengthText.style.color = colors[strength - 1];
+        } else {
+            strengthMeter.style.width = '0%';
+            strengthText.textContent = 'Password strength: Very Weak';
+            strengthText.style.color = '#6c757d';
+        }
+    }
+    
+    function validateForm() {
+        let isValid = true;
+        
+        // Username validation
+        if (username.value.length < 3 || username.value.length > 20) {
+            showFieldError(username, 'Username must be 3-20 characters');
+            isValid = false;
+        } else if (!/^[a-zA-Z0-9]+$/.test(username.value)) {
+            showFieldError(username, 'Username can only contain letters and numbers');
+            isValid = false;
+        } else {
+            clearFieldError(username);
+        }
+        
+        // Password validation
+        if (password.value.length < 6) {
+            showFieldError(password, 'Password must be at least 6 characters');
+            isValid = false;
+        } else {
+            clearFieldError(password);
+        }
+        
+        // Confirm password validation
+        if (password.value !== confirmPassword.value) {
+            showFieldError(confirmPassword, 'Passwords do not match');
+            isValid = false;
+        } else {
+            clearFieldError(confirmPassword);
+        }
+        
+        return isValid;
+    }
+    
+    function showFieldError(field, message) {
+        field.classList.add('is-invalid');
+        let feedback = field.parentNode.parentNode.querySelector('.invalid-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            field.parentNode.parentNode.appendChild(feedback);
+        }
+        feedback.textContent = message;
+    }
+    
+    function clearFieldError(field) {
+        field.classList.remove('is-invalid');
+        const feedback = field.parentNode.parentNode.querySelector('.invalid-feedback');
+        if (feedback) {
+            feedback.remove();
+        }
+    }
+    
+    // Auto-focus username field
+    username.focus();
+});
+</script>
+{% endblock %}

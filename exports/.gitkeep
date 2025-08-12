@@ -1,0 +1,2 @@
+# This file ensures the exports directory is tracked by Git
+# The exports directory is used for storing generated CSV export files

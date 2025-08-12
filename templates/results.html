@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Sentiment Analysis Tool{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2 fw-bold">Analysis Results</h1>
+            <p class="text-muted">Review and export your sentiment analysis history</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('export_results') }}" class="btn btn-success glass-btn">
+                <i class="fas fa-download me-2"></i>Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Results Overview -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-8">
+            <!-- Sentiment Distribution Chart -->
+            <div class="glass-card p-4">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>Sentiment Distribution
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="distributionChart" width="300" height="300"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="distribution-stats">
+                            <div class="stat-item mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-smile text-success me-2"></i>
+                                        <span>Positive</span>
+                                    </div>
+                                    <div>
+                                        <span class="h5 mb-0">{{ distribution.positive }}</span>
+                                        <small class="text-muted ms-2">
+                                            ({{ "%.1f"|format((distribution.positive / (distribution.positive + distribution.negative + distribution.neutral) * 100) if (distribution.positive + distribution.negative + distribution.neutral) > 0 else 0) }}%)
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="stat-item mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-meh text-secondary me-2"></i>
+                                        <span>Neutral</span>
+                                    </div>
+                                    <div>
+                                        <span class="h5 mb-0">{{ distribution.neutral }}</span>
+                                        <small class="text-muted ms-2">
+                                            ({{ "%.1f"|format((distribution.neutral / (distribution.positive + distribution.negative + distribution.neutral) * 100) if (distribution.positive + distribution.negative + distribution.neutral) > 0 else 0) }}%)
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="stat-item mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-frown text-danger me-2"></i>
+                                        <span>Negative</span>
+                                    </div>
+                                    <div>
+                                        <span class="h5 mb-0">{{ distribution.negative }}</span>
+                                        <small class="text-muted ms-2">
+                                            ({{ "%.1f"|format((distribution.negative / (distribution.positive + distribution.negative + distribution.neutral) * 100) if (distribution.positive + distribution.negative + distribution.neutral) > 0 else 0) }}%)
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Quick Stats -->
+            <div class="glass-card p-4 h-100">
+                <h6 class="card-title mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Quick Stats
+                </h6>
+                <div class="stats-list">
+                    <div class="stat-row d-flex justify-content-between mb-2">
+                        <span>Total Analyses:</span>
+                        <span class="fw-bold">{{ analyses.total }}</span>
+                    </div>
+                    <div class="stat-row d-flex justify-content-between mb-2">
+                        <span>Text Inputs:</span>
+                        <span class="fw-bold">{{ analyses.items | selectattr("source_type", "equalto", "text") | list | length }}</span>
+                    </div>
+                    <div class="stat-row d-flex justify-content-between mb-2">
+                        <span>File Uploads:</span>
+                        <span class="fw-bold">{{ analyses.items | selectattr("source_type", "equalto", "file") | list | length }}</span>
+                    </div>
+                    <hr>
+                    <div class="stat-row d-flex justify-content-between mb-2">
+                        <span>Avg. Confidence:</span>
+                        <span class="fw-bold">
+                            {% set avg_confidence = analyses.items | map(attribute='confidence') | sum / analyses.items | length if analyses.items else 0 %}
+                            {{ "%.2f"|format(avg_confidence) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="glass-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>Analysis History
+            </h5>
+            <div class="results-controls">
+                <div class="input-group input-group-sm" style="width: 250px;">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search results...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if analyses.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Text</th>
+                        <th>Sentiment</th>
+                        <th>Confidence</th>
+                        <th>Source</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody">
+                    {% for analysis in analyses.items %}
+                    <tr data-analysis-id="{{ analysis.id }}">
+                        <td>
+                            <div class="text-content">
+                                <div class="text-truncate" style="max-width: 300px;" title="{{ analysis.text }}">
+                                    {{ analysis.text }}
+                                </div>
+                                {% if analysis.keywords %}
+                                    {% set keywords = analysis.keywords | from_json %}
+                                    {% if keywords %}
+                                    <div class="mt-1">
+                                        {% for keyword in keywords.keys()[:3] %}
+                                        <span class="badge bg-light text-dark me-1">{{ keyword }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="sentiment-badge {{ analysis.sentiment }}">
+                                <i class="fas fa-{{ 'smile' if analysis.sentiment == 'positive' else 'frown' if analysis.sentiment == 'negative' else 'meh' }}"></i>
+                                {{ analysis.sentiment | title }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="confidence-display">
+                                <span class="fw-bold">{{ "%.2f"|format(analysis.confidence) }}</span>
+                                <div class="confidence-bar mt-1">
+                                    <div class="confidence-fill" style="width: {{ (analysis.confidence * 100)|round }}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="source-info">
+                                <i class="fas fa-{{ 'keyboard' if analysis.source_type == 'text' else 'file-alt' }}"></i>
+                                <span class="ms-1">{{ analysis.source_name or 'Manual Input' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ analysis.created_at.strftime('%m/%d/%Y %H:%M') }}</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewDetails({{ analysis.id }})" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="copyText('{{ analysis.text | replace("'", "\\'") }}')" title="Copy Text">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if analyses.pages > 1 %}
+        <nav aria-label="Results pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if analyses.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('results', page=analyses.prev_num) }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for page in analyses.iter_pages() %}
+                    {% if page %}
+                        {% if page != analyses.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('results', page=page) }}">{{ page }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if analyses.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('results', page=analyses.next_num) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="empty-state text-center py-5">
+            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+            <h5>No Analysis Results</h5>
+            <p class="text-muted mb-4">You haven't performed any sentiment analysis yet.</p>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Start Analyzing
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content glass-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">Analysis Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize distribution chart
+    initializeDistributionChart({{ distribution|tojson }});
+    
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const tableBody = document.getElementById('resultsTableBody');
+    
+    if (searchInput && tableBody) {
+        searchInput.addEventListener('input', performSearch);
+        searchBtn.addEventListener('click', performSearch);
+    }
+    
+    function performSearch() {
+        const query = searchInput.value.toLowerCase();
+        const rows = tableBody.getElementsByTagName('tr');
+        
+        for (let row of rows) {
+            const text = row.querySelector('.text-content').textContent.toLowerCase();
+            const sentiment = row.querySelector('.sentiment-badge').textContent.toLowerCase();
+            
+            if (text.includes(query) || sentiment.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    }
+});
+
+function viewDetails(analysisId) {
+    // In a real implementation, you would fetch details via AJAX
+    // For now, we'll show the row data in a modal
+    const row = document.querySelector(`tr[data-analysis-id="${analysisId}"]`);
+    if (!row) return;
+    
+    const text = row.querySelector('.text-content div').getAttribute('title');
+    const sentiment = row.querySelector('.sentiment-badge').textContent.trim();
+    const confidence = row.querySelector('.confidence-display .fw-bold').textContent;
+    const source = row.querySelector('.source-info span').textContent;
+    const date = row.querySelector('td:nth-child(5)').textContent.trim();
+    
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <div class="analysis-details">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Text Content:</label>
+                <div class="p-3 bg-light rounded">${text}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Sentiment:</label>
+                    <div>${sentiment}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Confidence:</label>
+                    <div>${confidence}</div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Source:</label>
+                    <div>${source}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Date:</label>
+                    <div>${date}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+    modal.show();
+}
+
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        // Show success message
+        const toast = document.createElement('div');
+        toast.className = 'toast show position-fixed top-0 end-0 m-3';
+        toast.innerHTML = `
+            <div class="toast-header">
+                <i class="fas fa-check-circle text-success me-2"></i>
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">Text copied to clipboard!</div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }).catch(() => {
+        alert('Failed to copy text to clipboard');
+    });
+}
+</script>
+{% endblock %}
